@@ -11,13 +11,12 @@
 #include <utils/io/shader_loader.h>
 #include "mesh.h"
 
-/* max bones allowed in a mesh */
-#define MAX_BONES 32
+
 
 void meshInit(Mesh* mesh, GLfloat* proj_mat){
 
-
     mesh->monkey_bone_offset_matrix =(mat4*)malloc(sizeof(mat4) * MAX_BONES );
+
     assert(meshLoadMeshFile(MESH_FILE,&mesh->vao,&mesh->vertexCount,mesh->monkey_bone_offset_matrix,&mesh->boneCount));
     printf("Monkey Bone Count %i\n", mesh->boneCount);
 
@@ -27,7 +26,8 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     meshGetUniforms(mesh);
 //    glUniform4f(mesh->location_clip_plane, 0.0f, -1.0f, 0.0f, 1.0f);
     glUniformMatrix4fv(mesh->location_projection_mat , 1, GL_FALSE, proj_mat);
-    mat4 s = scale(identity_mat4(), vec3(10,10,10));
+    mat4 s = rotate_x_deg(identity_mat4(), -90);
+//    mat4 s = scale(identity_mat4(), vec3(10,10,10));
     mesh->modelMatrix = s;
     glUniformMatrix4fv(mesh->location_model_mat , 1, GL_FALSE, mesh->modelMatrix.m);
 
@@ -43,11 +43,12 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
         bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[12];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[13];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[14];
-    }
 
+        printf("Position[%i]");
+
+    }
     glGenVertexArrays (1, &mesh->boneVao);
     glBindVertexArray (mesh->boneVao);
-
     GLuint bones_vbo;
     glGenBuffers (1, &bones_vbo);
     glBindBuffer (GL_ARRAY_BUFFER, bones_vbo);
@@ -68,23 +69,21 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
 //////////////////////assign the matrices
 
     //reset bone matrice
-    int bone_matrices_location[MAX_BONES];
+
     char name[64];
     for (int j = 0; j < MAX_BONES; ++j) {
         sprintf(name, "bone_matrices[%i]", j);
-        printf("bone_matrices[%i]: %s", j,name);
-        bone_matrices_location[j] = glGetUniformLocation(mesh->shader, name);
-        glUniformMatrix4fv(bone_matrices_location[j], 1, GL_FALSE, identity_mat4().m);
+//        printf("bone_matrices[%i]: %s", j,name);
+        mesh->bone_matrices_location[j] = glGetUniformLocation(mesh->shader, name);
+        glUniformMatrix4fv(mesh->bone_matrices_location[j], 1, GL_FALSE, identity_mat4().m);
     }
 
     glUseProgram(mesh->boneShader);
     mesh->location_bone_proj_mat = glGetUniformLocation(mesh->boneShader, "proj");
     mesh->location_bone_view_mat = glGetUniformLocation(mesh->boneShader, "view");
-
     glUniformMatrix4fv(mesh->location_bone_proj_mat, 1, GL_FALSE, proj_mat);
 
 /////////////////////////////////////////
-
 
 }
 
@@ -303,6 +302,7 @@ void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
     glUseProgram(mesh->boneShader);
     glUniformMatrix4fv(mesh->location_bone_view_mat, 1, GL_FALSE, camera->viewMatrix.m);
     glBindVertexArray(mesh->boneVao);
+    glEnableVertexAttribArray(0);
     glDrawArrays(GL_POINT, 0, mesh->boneCount);
     glDisable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_DEPTH_TEST);
@@ -311,5 +311,38 @@ void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
 void meshCleanUp(Mesh *mesh){
     glDeleteVertexArrays(1, &mesh->vao);
     glDeleteBuffers(1, &mesh->vbo);
+}
+
+void moveEarsForward(Mesh *mesh, float elapsed_seconds){
+
+    mesh->theta += mesh->rot_speed * elapsed_seconds;
+
+    glUseProgram(mesh->shader);
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[0]) *
+                    rotate_z_deg(identity_mat4(), mesh->theta) *
+                    mesh->monkey_bone_offset_matrix[0];
+    glUniformMatrix4fv(mesh->bone_matrices_location[0], 1, GL_FALSE, mesh->ear_mat.m);
+
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[1]) *
+                    rotate_z_deg(identity_mat4(), -mesh->theta) *
+                    mesh->monkey_bone_offset_matrix[1];
+    glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
+
+}
+
+void moveEarsBackward(Mesh *mesh, float elapsed_seconds){
+
+    mesh->theta -= mesh->rot_speed * elapsed_seconds;
+
+    glUseProgram(mesh->shader);
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[0]) *
+                    rotate_z_deg(identity_mat4(), mesh->theta) *
+                    mesh->monkey_bone_offset_matrix[0];
+    glUniformMatrix4fv(mesh->bone_matrices_location[0], 1, GL_FALSE, mesh->ear_mat.m);
+
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[1]) *
+                    rotate_z_deg(identity_mat4(), -mesh->theta) *
+                    mesh->monkey_bone_offset_matrix[1];
+    glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
 
 }

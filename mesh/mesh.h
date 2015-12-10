@@ -18,6 +18,8 @@
 #define BONE_VERTEX "/home/alvaregd/Documents/Games/hardware_skinning/mesh/bone.vert"
 #define BONE_FRAGMENT "/home/alvaregd/Documents/Games/hardware_skinning/mesh/bone.frag"
 
+/* max bones allowed in a mesh */
+#define MAX_BONES 32
 
 struct Mesh{
 
@@ -43,6 +45,12 @@ struct Mesh{
     int boneCount;
     mat4* monkey_bone_offset_matrix;
 
+    //rotation
+    int bone_matrices_location[MAX_BONES];
+    mat4 ear_mat;
+    float theta = 0.0f;
+    float rot_speed = 50.0f; // 50 radians per second
+
 };
 
 void meshInit(Mesh* mesh, GLfloat* proj_mat);
@@ -52,5 +60,6 @@ void meshLoadShaderProgram(Mesh * mesh);
 void meshGetUniforms(Mesh* mesh);
 void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight);
 void meshCleanUp(Mesh *mesh);
-
+void moveEarsForward(Mesh *mesh, float elapsed_seconds);
+void moveEarsBackward(Mesh *mesh, float elapsed_seconds);
 #endif //WATER_REFLECTION_MESH_H

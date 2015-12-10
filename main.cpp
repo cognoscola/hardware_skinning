@@ -28,8 +28,8 @@ int main() {
     camera = {}; //camera components
     cameraInit(&camera, &hardware);
 
-    Mesh terrain;
-    meshInit(&terrain, camera.proj_mat);
+    Mesh monkey;
+    meshInit(&monkey, camera.proj_mat);
 
     Skybox sky; // sky object
     skyInit(&sky, camera.proj_mat);
@@ -39,6 +39,7 @@ int main() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    glDepthFunc(GL_LESS);
 
     while(!glfwWindowShouldClose (hardware.window)) {
 
@@ -52,9 +53,11 @@ int main() {
 
         //RENDER TO THE DEFAULT BUFFER
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0,0,hardware.vmode->width,hardware.vmode->height);
+
         updateMovement(&camera, &input);
         calculateViewMatrices(&camera);
-        meshRender(&terrain,&camera,1000.0f);
+        meshRender(&monkey, &camera, 1000.0f);
         skyRender(&sky, &camera);
         skyUpdate(&sky);
 
@@ -64,6 +67,13 @@ int main() {
             video.dump_video = true;
             printf("Recording...");
         }
+        if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_Z)) {
+            moveEarsForward(&monkey, (float) elapsed_seconds);
+        }
+        if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_X)) {
+            moveEarsBackward(&monkey, (float) elapsed_seconds);
+        }
+
         if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_SPACE)) {
             assert (screencapture (&hardware));
         }
@@ -80,7 +90,7 @@ int main() {
         glfwSwapBuffers(hardware.window);
     }
 
-    meshCleanUp(&terrain);
+    meshCleanUp(&monkey);
     skyCleanUp(&sky);
 
     if(video.dump_video) {

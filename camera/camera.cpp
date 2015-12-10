@@ -43,8 +43,8 @@ void cameraInit(Camera * camera, Window *window){
 
     //create init view matrix
     camera->pos[0] = 0.0f; // don't start at zero, or we will be too close
-    camera->pos[1] = 10.0f; // don't start at zero, or we will be too close
-    camera->pos[2] = 0.5f; // don't start at zero, or we will be too close
+    camera->pos[1] = 0.0f; // don't start at zero, or we will be too close
+    camera->pos[2] = 3.0f; // don't start at zero, or we will be too close
     camera->T =translate (identity_mat4 (), vec3 (-camera->pos[0], -camera->pos[1], -camera->pos[2]));
     camera->Rpitch = rotate_y_deg (identity_mat4 (), -camera->yaw);
     camera->Ryaw = rotate_y_deg (identity_mat4 (), -camera->yaw);
@@ -94,9 +94,9 @@ void updateMovement(Camera* camera, Input* input) {
 
     //while we are moving (velocity is nonzero), update the camera's position
     if (camera->moving) {
-        camera->pos[0] += -camera->velocity.v[0] *0.3f;
-        camera->pos[2] += -camera->velocity.v[2] *0.3f;
-        camera->pos[1] += -camera->velocity.v[1] *0.3f;
+        camera->pos[0] += -camera->velocity.v[0] *0.03f;
+        camera->pos[2] += -camera->velocity.v[2] *0.03f;
+        camera->pos[1] += -camera->velocity.v[1] *0.03f;
         if(dot(camera->velocity,camera->velocity) < 1e-9) {
             camera->velocity.v[0] = camera->velocity.v[2] = camera->velocity.v[1] = 0.0f;
             camera->pushing = 0;
