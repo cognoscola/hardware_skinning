@@ -1,48 +1,51 @@
-//
 // Created by alvaregd on 06/12/15.
-//
-
 #include <stdio.h>
 #include <assimp/cimport.h>
-#include <assimp/scene.h>
+
 #include <assimp/postprocess.h>
 #include <GL/glew.h>
 #include <utils/io/texture.h>
 #include <utils/io/shader_loader.h>
 #include "mesh.h"
 
-
-
 void meshInit(Mesh* mesh, GLfloat* proj_mat){
 
-    mesh->monkey_bone_offset_matrix =(mat4*)malloc(sizeof(mat4) * MAX_BONES );
+    mesh->monkey_bone_offset_matrices =(mat4*)malloc(sizeof(mat4) * MAX_BONES );
+    mesh->monkey_bone_animation_mats = (mat4*)malloc(sizeof(mat4) * MAX_BONES );
+    for (int i = 0; i < MAX_BONES; i++) {
+        mesh->monkey_bone_offset_matrices[i] = identity_mat4();
+    }
 
-    assert(meshLoadMeshFile(MESH_FILE,&mesh->vao,&mesh->vertexCount,mesh->monkey_bone_offset_matrix,&mesh->boneCount));
+    assert(meshLoadMeshFile(
+            MESH_FILE,
+            &mesh->vao,
+            &mesh->vertexCount,
+            mesh->monkey_bone_offset_matrices,
+            &mesh->boneCount,
+            &mesh->nodes,
+            &mesh->animationDuration
+   ));
     printf("Monkey Bone Count %i\n", mesh->boneCount);
 
 //    meshLoadTexture(mesh);
     meshLoadShaderProgram(mesh);
     glUseProgram(mesh->shader);
     meshGetUniforms(mesh);
-//    glUniform4f(mesh->location_clip_plane, 0.0f, -1.0f, 0.0f, 1.0f);
     glUniformMatrix4fv(mesh->location_projection_mat , 1, GL_FALSE, proj_mat);
-    mat4 s = rotate_x_deg(identity_mat4(), -90);
-//    mat4 s = scale(identity_mat4(), vec3(10,10,10));
-    mesh->modelMatrix = s;
+//    mat4 s = rotate_x_deg(identity_mat4(), -90);
+    mesh->modelMatrix = identity_mat4();
     glUniformMatrix4fv(mesh->location_model_mat , 1, GL_FALSE, mesh->modelMatrix.m);
-
-//////////////////////////
 
 /////////visualizing the bones
     float bone_positions[3*256];
     int c = 0;
     for (int i = 0; i < mesh->boneCount; i++) {
-        print(mesh->monkey_bone_offset_matrix[i]);
+        print(mesh->monkey_bone_offset_matrices[i]);
 
         // get the x y z translation elements from the last column in the array
-        bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[12];
-        bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[13];
-        bone_positions[c++] = -mesh->monkey_bone_offset_matrix[i].m[14];
+        bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[12];
+        bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[13];
+        bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[14];
 
         printf("Position[%i]");
 
@@ -71,7 +74,7 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     //reset bone matrice
 
     char name[64];
-    for (int j = 0; j < MAX_BONES; ++j) {
+    for (int j = 0; j < MAX_BONES; j++) {
         sprintf(name, "bone_matrices[%i]", j);
 //        printf("bone_matrices[%i]: %s", j,name);
         mesh->bone_matrices_location[j] = glGetUniformLocation(mesh->shader, name);
@@ -84,7 +87,6 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     glUniformMatrix4fv(mesh->location_bone_proj_mat, 1, GL_FALSE, proj_mat);
 
 /////////////////////////////////////////
-
 }
 
 mat4 convert_assimp_matrix (aiMatrix4x4 m) {
@@ -96,7 +98,9 @@ mat4 convert_assimp_matrix (aiMatrix4x4 m) {
     );
 }
 
-bool meshLoadMeshFile(const char *fileName, GLuint *vao, int *point_count, mat4* bone_offset_mats, int* boneCount){
+bool meshLoadMeshFile(
+        const char *fileName, GLuint *vao, int *point_count, mat4* bone_offset_mats,
+        int* boneCount, SkeletonNode** rootNode, double* animDuration){
 
     const aiScene *scene = aiImportFile(fileName, aiProcess_Triangulate);
     if (!scene) {
@@ -131,7 +135,7 @@ bool meshLoadMeshFile(const char *fileName, GLuint *vao, int *point_count, mat4*
 
     if (mesh->HasPositions()) {
         points = (GLfloat *) malloc(*point_count * 3 * sizeof(GLfloat));
-        for (int i = 0; i < *point_count; ++i) {
+        for (int i = 0; i < *point_count; i++) {
             const aiVector3D *vp = &(mesh->mVertices[i]);
             points[i * 3 + 0] = (GLfloat)vp->x;
             points[i * 3 + 1] = (GLfloat)vp->y;
@@ -141,18 +145,17 @@ bool meshLoadMeshFile(const char *fileName, GLuint *vao, int *point_count, mat4*
 
     if (mesh->HasNormals()) {
         normals = (GLfloat *) malloc(*point_count * 3 * sizeof(GLfloat));
-        for (int i = 0; i < *point_count; ++i) {
+        for (int i = 0; i < *point_count; i++) {
             const aiVector3D *vp = &(mesh->mNormals[i]);
             normals[i * 3 + 0] = (GLfloat)vp->x;
             normals[i * 3 + 1] = (GLfloat)vp->y;
             normals[i * 3 + 2] = (GLfloat)vp->z;
-
         }
     }
 
     if (mesh->HasTextureCoords(0)) {
         texcoords = (GLfloat *) malloc(*point_count * 2 * sizeof(GLfloat));
-        for (int i = 0; i < *point_count; ++i) {
+        for (int i = 0; i < *point_count; i++) {
             const aiVector3D *vp = &(mesh->mTextureCoords[0][i]);
             texcoords[i * 2 + 0] = (GLfloat)vp->x;
             texcoords[i * 2 + 1] = (GLfloat)vp->y;
@@ -191,6 +194,78 @@ bool meshLoadMeshFile(const char *fileName, GLuint *vao, int *point_count, mat4*
             }
         }
 
+        aiNode* assimpNode = scene->mRootNode;
+        if(!meshImportSkeletonNode(assimpNode,rootNode,*boneCount,bone_names)){
+            fprintf(stderr, "ERROR: could not import node tree from mesh\n");
+        }
+
+        if(scene->mNumAnimations > 0){
+
+            //get the first animations
+            aiAnimation* anim = scene->mAnimations[0];
+            printf("animation name: %s\n", anim->mName.C_Str());
+            printf("animation has: %i node channels\n", anim->mNumChannels);
+            printf("animation has: %i mesh channels\n", anim->mNumMeshChannels);
+            printf("animation duration %f\n", anim->mDuration);
+            printf("ticks per second %f\n", anim->mTicksPerSecond);
+
+            *animDuration = anim->mDuration;
+            printf("anim duration is %f\n", anim->mDuration);
+
+            for (int i = 0; i < (int) anim->mNumChannels; i++) {
+                aiNodeAnim* chan = anim->mChannels[i];
+
+                //find the matching node in our skeleton
+                SkeletonNode* sn = findNodeInSkeleton(*rootNode, chan->mNodeName.C_Str());
+
+                if (!sn) {
+                    fprintf(stderr, "WARNING: did not find node named %s in skeleton. Animation Broken!. \n",
+                            chan->mNodeName.C_Str());
+                    continue;
+                }
+
+                sn->numPosKeys = chan->mNumPositionKeys;
+                sn->numRotKeys = chan->mNumRotationKeys;
+                sn->numScaKeys = chan->mNumScalingKeys;
+
+
+                sn->posKeys = (vec3 *) malloc(sizeof(vec3) * sn->numPosKeys);
+                sn->rotKeys = (versor *) malloc(sizeof(versor) * sn->numRotKeys);
+                sn->scaleKeys = (vec3 *) malloc(sizeof(vec3) * sn->numScaKeys);
+
+                sn->posKeyTimes = (double *) malloc(sizeof(double) * sn->numPosKeys);
+                sn->rotKeyTimes = (double *) malloc(sizeof(double) * sn->numRotKeys);
+                sn->scaKeyTimes = (double *) malloc(sizeof(double) * sn->numScaKeys);
+
+                //add position keys to node
+                for (int j = 0; j < sn->numPosKeys; j++) {
+                    aiVectorKey key = chan->mPositionKeys[j];
+                    sn->posKeys[j].v[0] = key.mValue.x;
+                    sn->posKeys[j].v[1] = key.mValue.y;
+                    sn->posKeys[j].v[2] = key.mValue.z;
+                    sn->posKeyTimes[j] = key.mTime;
+                }
+
+                for (int k = 0; k < sn->numRotKeys; k++) {
+                    aiQuatKey key = chan->mRotationKeys[k];
+                    sn->rotKeys[k].q[0] = key.mValue.w;
+                    sn->rotKeys[k].q[1] = key.mValue.x;
+                    sn->rotKeys[k].q[2] = key.mValue.y;
+                    sn->rotKeys[k].q[3] = key.mValue.z;
+                    sn->rotKeyTimes[k] = key.mTime;
+                }
+
+                for (int l = 0; l < sn->numScaKeys; l++) {
+                    aiVectorKey key = chan->mScalingKeys[l];
+                    sn->scaleKeys[l].v[0] = key.mValue.x;
+                    sn->scaleKeys[l].v[1] = key.mValue.y;
+                    sn->scaleKeys[l].v[2] = key.mValue.z;
+                    sn->scaKeyTimes[l] = key.mTime;
+                }
+            }
+        }else {
+            fprintf(stderr, "WARNING: no animations found in mesh file\n");
+        }
     }
 
     /** make vbos*/
@@ -245,7 +320,6 @@ bool meshLoadMeshFile(const char *fileName, GLuint *vao, int *point_count, mat4*
 
 
 void meshLoadTexture(Mesh* mesh){
-
     GLuint texID;
     glGenTextures(1, &texID);
     glActiveTexture(GL_TEXTURE0);
@@ -311,21 +385,191 @@ void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
 void meshCleanUp(Mesh *mesh){
     glDeleteVertexArrays(1, &mesh->vao);
     glDeleteBuffers(1, &mesh->vbo);
+
+//    free(mesh->nodes->posKeys);
+//    free(mesh->nodes->rotKeys);
+//    free(mesh->nodes->scaleKeys);
+
+//    free(mesh->nodes->posKeyTimes);
+//    free(mesh->nodes->rotKeyTimes);
+//    free(mesh->nodes->scaKeyTimes);
 }
+
+bool meshImportSkeletonNode(aiNode* assimpNode, SkeletonNode** skeletonNode, int boneCount, char boneNames[][64]){
+
+    SkeletonNode *temp = (SkeletonNode *) malloc(sizeof(SkeletonNode));
+    strcpy(temp->name, assimpNode->mName.C_Str());
+    printf("-node name = %s\n", temp->name);
+    temp->numChildren = 0;
+
+    //initialize key frames info
+    temp->posKeys = NULL;
+    temp->rotKeys = NULL;
+    temp->scaleKeys = NULL;
+    temp->posKeyTimes = NULL;
+    temp->rotKeyTimes = NULL;
+    temp->scaKeyTimes = NULL;
+    temp->numPosKeys = 0;
+    temp->numRotKeys = 0;
+    temp->numScaKeys = 0;
+
+
+    printf("node has %i children\n", (int) assimpNode->mNumChildren);
+    temp->boneIndex = -1;
+    for (int i = 0; i < MAX_BONES; i++) {
+        temp->children[i] = NULL;
+    }
+
+    bool hasBone = false;
+    for (int j = 0; j < boneCount; j++) {
+        if (strcmp(boneNames[j], temp->name) == 0) {
+            printf("node uses bone %i\n", j);
+            temp->boneIndex = j;
+            hasBone = true;
+            break;
+        }
+    }
+
+    if (!hasBone) {
+        printf("no bone found for node\n");
+    }
+
+    bool hasUsefulChild = false;
+    for (int k = 0; k < (int)assimpNode->mNumChildren; k++) {
+        if(meshImportSkeletonNode(
+                assimpNode->mChildren[k],
+                &temp->children[temp->numChildren],
+                boneCount,
+                boneNames
+        )){
+            hasUsefulChild = true;
+            temp->numChildren++;
+        }else {
+            printf("useless child culled\n");
+        }
+    }
+
+    if (hasUsefulChild || hasBone) {
+        *skeletonNode = temp;
+        return true;
+    }
+
+    free(temp);
+    temp = NULL;
+    return  false;
+}
+
+
+void meshSkeletonAnimate(Mesh* mesh,
+                         SkeletonNode* node,
+                         double animTime,
+                         mat4 parentMat,
+                         mat4* boneOffsetMats,
+                         mat4* boneAnimationMats) {
+
+    assert(node);
+
+    mat4 ourMat = parentMat;
+    mat4 localAnim = identity_mat4();
+
+    //interpolate the position
+    mat4 nodeT = identity_mat4();
+    if (node->numPosKeys > 0) {
+        int prevKeys =0;
+        int nextKeys =0;
+        for (int i = 0; i < node->numPosKeys - 1; i++) {
+            prevKeys = i;
+            nextKeys =i +1;
+            if (node->posKeyTimes[nextKeys] >= animTime) {
+                break;
+            }
+        }
+        float total_t = (float)(node->posKeyTimes[nextKeys] - node->posKeyTimes[prevKeys]);
+        float t = (float)((animTime - node->posKeyTimes[prevKeys]) / total_t);
+        vec3 vi = node->posKeys[prevKeys];
+        vec3 vf = node->posKeys[nextKeys];
+        vec3 lerped = vi* (1.0f -t ) + vf* t;
+        nodeT = translate(identity_mat4(), lerped);
+    }
+
+    //sphere interpolate rotations
+    mat4 node_R = identity_mat4();
+    if(node->numRotKeys > 0) {
+        int prevKeys = 0;
+        int nextKeys = 0;
+        for (int i = 0; i < node->numRotKeys - 1; i++) {
+            prevKeys = i;
+            nextKeys = i + 1;
+            if (node->rotKeyTimes[nextKeys] >= animTime) {
+                break;
+            }
+        }
+
+        float total_t = (float)(node->rotKeyTimes[nextKeys] - node->rotKeyTimes[prevKeys]);
+        float t = (float)((animTime - node->rotKeyTimes[prevKeys]) / total_t);
+        versor qi = node->rotKeys[prevKeys];
+        versor qf = node->rotKeys[nextKeys];
+        versor slerped = slerp(qi, qf, t);
+        node_R = quat_to_mat4(slerped);
+    }
+
+    localAnim = nodeT * node_R;
+
+    //if node has a weighted bone
+    int bone_i = node->boneIndex;
+    if (bone_i > -1) {
+        mat4 boneOffset = boneOffsetMats[bone_i];
+//        mat4 invBoneOffset = inverse(boneOffset);
+//        localAnim = mesh->g_local_anims[bone_i];
+        ourMat = parentMat * localAnim;
+//        ourMat = parentMat * invBoneOffset * localAnim * boneOffset;
+        boneAnimationMats[bone_i] = parentMat * localAnim * boneOffset;
+
+    }
+
+    for (int i = 0; i < node->numChildren; i++) {
+        meshSkeletonAnimate(
+                mesh,
+                node->children[i],
+                animTime,
+                ourMat,
+                boneOffsetMats,
+                boneAnimationMats
+        );
+    }
+}
+
+SkeletonNode* findNodeInSkeleton(SkeletonNode* root, const char* nodeName){
+    assert(root);
+
+    if (strcmp(nodeName, root->name) == 0) {
+        return root;
+    }
+
+    for (int i = 0; i < root->numChildren; i++) {
+        SkeletonNode *child = findNodeInSkeleton(root->children[i], nodeName);
+        if (child != NULL) {
+            return child;
+        }
+    }
+    return NULL;
+}
+
+
+
 
 void moveEarsForward(Mesh *mesh, float elapsed_seconds){
 
     mesh->theta += mesh->rot_speed * elapsed_seconds;
 
     glUseProgram(mesh->shader);
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[0]) *
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[0]) *
                     rotate_z_deg(identity_mat4(), mesh->theta) *
-                    mesh->monkey_bone_offset_matrix[0];
+                    mesh->monkey_bone_offset_matrices[0];
     glUniformMatrix4fv(mesh->bone_matrices_location[0], 1, GL_FALSE, mesh->ear_mat.m);
-
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[1]) *
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[1]) *
                     rotate_z_deg(identity_mat4(), -mesh->theta) *
-                    mesh->monkey_bone_offset_matrix[1];
+                    mesh->monkey_bone_offset_matrices[1];
     glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
 
 }
@@ -333,16 +577,15 @@ void moveEarsForward(Mesh *mesh, float elapsed_seconds){
 void moveEarsBackward(Mesh *mesh, float elapsed_seconds){
 
     mesh->theta -= mesh->rot_speed * elapsed_seconds;
-
     glUseProgram(mesh->shader);
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[0]) *
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[0]) *
                     rotate_z_deg(identity_mat4(), mesh->theta) *
-                    mesh->monkey_bone_offset_matrix[0];
+                    mesh->monkey_bone_offset_matrices[0];
     glUniformMatrix4fv(mesh->bone_matrices_location[0], 1, GL_FALSE, mesh->ear_mat.m);
 
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrix[1]) *
+    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[1]) *
                     rotate_z_deg(identity_mat4(), -mesh->theta) *
-                    mesh->monkey_bone_offset_matrix[1];
+                    mesh->monkey_bone_offset_matrices[1];
     glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
 
 }

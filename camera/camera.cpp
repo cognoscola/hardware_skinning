@@ -10,17 +10,17 @@
 
 void cameraInit(Camera * camera, Window *window){
 
-    float near = 0.1f;
-    float far = 300.0f;
-    double fov = 67.0f * DEG_TO_RAD;
+    float near   = 0.1f;
+    float far    = 300.0f;
+    double fov   = 67.0f * DEG_TO_RAD;
     float aspect = (float) window->vmode->width / (float) window->vmode->height;
 
     // matrix components
     double range = tan (fov * 0.5f) * near;
-    double Sx = (2.0f * near) / (range * aspect + range * aspect);
-    double Sy = near / range;
-    float Sz = -(far + near) / (far - near);
-    float Pz = -(2.0f * far * near) / (far - near);
+    double Sx    = (2.0f * near) / (range * aspect + range * aspect);
+    double Sy    = near / range;
+    float Sz     = -(far + near) / (far - near);
+    float Pz     = -(2.0f * far * near) / (far - near);
 
     camera->proj_mat = new GLfloat[16];
     camera->proj_mat[0] = Sx;
@@ -39,7 +39,6 @@ void cameraInit(Camera * camera, Window *window){
     camera->proj_mat[13] = 0.0f;
     camera->proj_mat[14] = Pz;
     camera->proj_mat[15] = 0.0f;
-
 
     //create init view matrix
     camera->pos[0] = 0.0f; // don't start at zero, or we will be too close

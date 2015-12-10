@@ -41,6 +41,9 @@ int main() {
     glFrontFace(GL_CCW);
     glDepthFunc(GL_LESS);
 
+    //todo
+    double anim_time = 0.0;
+
     while(!glfwWindowShouldClose (hardware.window)) {
 
         //timing calculation
@@ -48,6 +51,12 @@ int main() {
         double current_seconds = glfwGetTime ();
         double elapsed_seconds = current_seconds - previous_seconds;
         previous_seconds = current_seconds;
+
+        anim_time += elapsed_seconds * 0.5;
+        if (anim_time >= monkey.animationDuration) {
+            anim_time = monkey.animationDuration - anim_time;
+        }
+
 
         if(videoUpdateTimer(&video, &elapsed_seconds)) break;
 
@@ -67,12 +76,6 @@ int main() {
             video.dump_video = true;
             printf("Recording...");
         }
-        if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_Z)) {
-            moveEarsForward(&monkey, (float) elapsed_seconds);
-        }
-        if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_X)) {
-            moveEarsBackward(&monkey, (float) elapsed_seconds);
-        }
 
         if (GLFW_PRESS == glfwGetKey (hardware.window, GLFW_KEY_SPACE)) {
             assert (screencapture (&hardware));
@@ -80,6 +83,50 @@ int main() {
         if (GLFW_PRESS == glfwGetKey(hardware.window, GLFW_KEY_ESCAPE)) {
             glfwSetWindowShouldClose(hardware.window, 1);
         }
+
+        bool monkey_moved = false;
+        if (glfwGetKey (hardware.window, 'Z')) {
+            monkey.theta += monkey.rot_speed * elapsed_seconds;
+            monkey.g_local_anims[0] = rotate_z_deg (identity_mat4 (), monkey.theta);
+            monkey.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -monkey.theta);
+            monkey_moved = true;
+        }
+
+        if (glfwGetKey (hardware.window, 'X')) {
+            monkey.theta -= monkey.rot_speed * elapsed_seconds;
+            monkey.g_local_anims[0] = rotate_z_deg (identity_mat4 (), monkey.theta);
+            monkey.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -monkey.theta);
+            monkey_moved = true;
+        }
+
+        if (glfwGetKey (hardware.window, 'C')) {
+            monkey.y -= 0.5f * elapsed_seconds;
+            monkey.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, monkey.y, 0.0f));
+            monkey_moved = true;
+        }
+
+        if (glfwGetKey (hardware.window, 'V')) {
+            monkey.y += 0.5f * elapsed_seconds;
+            monkey.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, monkey.y, 0.0f));
+            monkey_moved = true;
+        }
+
+        meshSkeletonAnimate(
+                &monkey,
+                monkey.nodes,
+                anim_time,
+                identity_mat4 (),
+                monkey.monkey_bone_offset_matrices,
+                monkey.monkey_bone_animation_mats
+        );
+        glUseProgram (monkey.shader);
+        glUniformMatrix4fv (
+                monkey.bone_matrices_location[0],
+                monkey.boneCount,
+                GL_FALSE,
+                monkey.monkey_bone_animation_mats[0].m
+        );
+
 
         if (video.dump_video) { // check if recording mode is enabled
             while (video.video_dump_timer > video.frame_time) {
