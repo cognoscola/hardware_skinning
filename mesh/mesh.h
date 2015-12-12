@@ -1,7 +1,6 @@
 //
 // Created by alvaregd on 06/12/15.
 //
-
 #ifndef WATER_REFLECTION_MESH_H
 #define WATER_REFLECTION_MESH_H
 
@@ -11,7 +10,7 @@
 #include <assimp/scene.h>
 
 #define TERRAIN_TEXTURE "/home/alvaregd/Documents/Games/hardware_skinning/assets/ao_colour.png"
-#define MESH_FILE "/home/alvaregd/Documents/Games/hardware_skinning/assets/monkey.dae"
+#define MESH_FILE "/home/alvaregd/Documents/Games/hardware_skinning/assets/seagull.dae"
 
 #define MESH_VERTEX "/home/alvaregd/Documents/Games/hardware_skinning/mesh/mesh.vert"
 #define MESH_FRAGMENT "/home/alvaregd/Documents/Games/hardware_skinning/mesh/mesh.frag"
@@ -33,7 +32,6 @@ struct SkeletonNode{
     int numPosKeys;
     int numRotKeys;
     int numScaKeys;
-
 
     SkeletonNode *children[MAX_BONES];
     char name[64];
@@ -91,7 +89,6 @@ void meshGetUniforms(Mesh* mesh);
 void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight);
 void meshCleanUp(Mesh *mesh);
 bool meshImportSkeletonNode(aiNode* assimpNode, SkeletonNode **skeletonNode, int boneCount, char boneNames[][64]);
-
 void meshSkeletonAnimate(Mesh* mesh,
                          SkeletonNode* node,
                          double animTime,

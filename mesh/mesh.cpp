@@ -25,7 +25,7 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
             &mesh->nodes,
             &mesh->animationDuration
    ));
-    printf("Monkey Bone Count %i\n", mesh->boneCount);
+    printf("Bone Count %i\n", mesh->boneCount);
 
 //    meshLoadTexture(mesh);
     meshLoadShaderProgram(mesh);
@@ -41,14 +41,12 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     int c = 0;
     for (int i = 0; i < mesh->boneCount; i++) {
         print(mesh->monkey_bone_offset_matrices[i]);
-
         // get the x y z translation elements from the last column in the array
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[12];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[13];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[14];
 
-        printf("Position[%i]");
-
+        printf("Position[%i]",i);
     }
     glGenVertexArrays (1, &mesh->boneVao);
     glBindVertexArray (mesh->boneVao);
@@ -162,7 +160,6 @@ bool meshLoadMeshFile(
 
         }
     }
-
     //bones
     if(mesh->HasBones()){
         *boneCount = (int)mesh->mNumBones;
@@ -188,8 +185,9 @@ bool meshLoadMeshFile(
                 aiVertexWeight weight = bone->mWeights[w_i];
                 int vertex_id = (int) weight.mVertexId;
                 //ignore weight of less than 0.5 factor
+                bone_ids[vertex_id]= b_i;
                 if (weight.mWeight >= 0.5) {
-                    bone_ids[vertex_id]= b_i;
+
                 }
             }
         }
@@ -241,7 +239,7 @@ bool meshLoadMeshFile(
                 for (int j = 0; j < sn->numPosKeys; j++) {
                     aiVectorKey key = chan->mPositionKeys[j];
                     sn->posKeys[j].v[0] = key.mValue.x;
-                    sn->posKeys[j].v[1] = key.mValue.y;
+                    sn->posKeys[j].v[1] = key.mValue.y; //TODO BLENDER HAS Z as up
                     sn->posKeys[j].v[2] = key.mValue.z;
                     sn->posKeyTimes[j] = key.mTime;
                 }
@@ -288,7 +286,6 @@ bool meshLoadMeshFile(
         glEnableVertexAttribArray(1);
         free(normals);
     }
-
     if (mesh->HasTextureCoords(0)) {
         GLuint vbo;
         glGenBuffers(1, &vbo);
@@ -347,14 +344,12 @@ void meshGetUniforms(Mesh* mesh){
     mesh->location_model_mat   = glGetUniformLocation(mesh->shader, "modelMatrix");
     mesh->location_view_mat   = glGetUniformLocation(mesh->shader, "viewMatrix");
     mesh->location_projection_mat  = glGetUniformLocation(mesh->shader, "projectionMatrix");
-//    mesh->location_clip_plane      = glGetUniformLocation(mesh->shader, "plane");
 }
 
 void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
 
     //render the mesh
     glUseProgram(mesh->shader);
-//    glUniform4f(mesh->location_clip_plane, 0.0f, 1.0f, 0.0f, planeHeight);
     glUniformMatrix4fv(mesh->location_view_mat, 1, GL_FALSE, camera->viewMatrix.m);
     glUniformMatrix4fv(mesh->location_model_mat, 1, GL_FALSE, mesh->modelMatrix.m);
     glBindVertexArray(mesh->vao);
@@ -377,7 +372,8 @@ void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
     glUniformMatrix4fv(mesh->location_bone_view_mat, 1, GL_FALSE, camera->viewMatrix.m);
     glBindVertexArray(mesh->boneVao);
     glEnableVertexAttribArray(0);
-    glDrawArrays(GL_POINT, 0, mesh->boneCount);
+    glPointSize(15);
+    glDrawArrays(GL_POINTS, 0, mesh->boneCount);
     glDisable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_DEPTH_TEST);
 }
@@ -513,7 +509,27 @@ void meshSkeletonAnimate(Mesh* mesh,
         node_R = quat_to_mat4(slerped);
     }
 
-    localAnim = nodeT * node_R;
+
+    mat4 node_S = identity_mat4();
+    if (node->numScaKeys > 0) {
+        int prevKeys =0;
+        int nextKeys =0;
+        for (int i = 0; i < node->numScaKeys - 1; i++) {
+            prevKeys = i;
+            nextKeys =i +1;
+            if (node->scaKeyTimes[nextKeys] >= animTime) {
+                break;
+            }
+        }
+        float total_t = (float)(node->scaKeyTimes[nextKeys] - node->scaKeyTimes[prevKeys]);
+        float t = (float)((animTime - node->scaKeyTimes[prevKeys]) / total_t);
+        vec3 si = node->scaleKeys[prevKeys];
+        vec3 sf = node->scaleKeys[nextKeys];
+        vec3 lerped = si* (1.0f -t ) + sf* t;
+        node_S = scale(identity_mat4(), lerped);
+    }
+
+    localAnim = nodeT * node_R * node_S;
 
     //if node has a weighted bone
     int bone_i = node->boneIndex;

@@ -34,7 +34,7 @@ int main() {
     Skybox sky; // sky object
     skyInit(&sky, camera.proj_mat);
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     glEnable (GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -56,7 +56,6 @@ int main() {
         if (anim_time >= monkey.animationDuration) {
             anim_time = monkey.animationDuration - anim_time;
         }
-
 
         if(videoUpdateTimer(&video, &elapsed_seconds)) break;
 
@@ -126,7 +125,6 @@ int main() {
                 GL_FALSE,
                 monkey.monkey_bone_animation_mats[0].m
         );
-
 
         if (video.dump_video) { // check if recording mode is enabled
             while (video.video_dump_timer > video.frame_time) {
