@@ -20,7 +20,7 @@ bool start_gl (Window * hardware) {
 
     hardware->mon= glfwGetPrimaryMonitor();
     hardware->vmode = glfwGetVideoMode(hardware->mon);
-    hardware->window = glfwCreateWindow (hardware->vmode->width, hardware->vmode->height, "Hello World", hardware->mon, NULL);
+    hardware->window = glfwCreateWindow (hardware->vmode->width, hardware->vmode->height, "Hardware Skinning", hardware->mon, NULL);
     if (!hardware->window) {
         fprintf (stderr, "ERROR: could not open window with GLFW3\n");
         glfwTerminate();

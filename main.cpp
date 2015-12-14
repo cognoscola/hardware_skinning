@@ -52,7 +52,7 @@ int main() {
         double elapsed_seconds = current_seconds - previous_seconds;
         previous_seconds = current_seconds;
 
-        anim_time += elapsed_seconds * 0.5;
+        anim_time += elapsed_seconds * 0.7;
         if (anim_time >= monkey.animationDuration) {
             anim_time = monkey.animationDuration - anim_time;
         }
@@ -109,7 +109,6 @@ int main() {
             monkey.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, monkey.y, 0.0f));
             monkey_moved = true;
         }
-
         meshSkeletonAnimate(
                 &monkey,
                 monkey.nodes,
@@ -118,7 +117,7 @@ int main() {
                 monkey.monkey_bone_offset_matrices,
                 monkey.monkey_bone_animation_mats
         );
-        glUseProgram (monkey.shader);
+       glUseProgram (monkey.shader);
         glUniformMatrix4fv (
                 monkey.bone_matrices_location[0],
                 monkey.boneCount,

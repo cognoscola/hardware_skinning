@@ -119,7 +119,7 @@ void main(void){
              colour.r = 0.8;
              colour.g = 0.8;
              colour.b = 1.0;
-        }
+     }
 
      else if(bone_id == 19){
              colour.r = 1.0;
@@ -139,7 +139,8 @@ void main(void){
 
     st = textureCoords;
     normal = vertex_normal;
-    gl_Position = projectionMatrix  *  viewMatrix * modelMatrix * bone_matrices[bone_id] * vec4 (positions, 1.0);
+    gl_Position = projectionMatrix  *  viewMatrix * modelMatrix * bone_matrices[bone_id]* vec4 (positions, 1.0);
 
+//bone_matrices[bone_id]
 
 }

@@ -56,6 +56,7 @@ struct Mesh{
 
     GLint location_bone_view_mat;
     GLint location_bone_proj_mat;
+    GLint location_bone_model_mat;
 
     mat4 modelMatrix;
 
@@ -76,7 +77,6 @@ struct Mesh{
 
     //animation stuff
     double animationDuration;
-
 };
 
 void meshInit(Mesh* mesh, GLfloat* proj_mat);

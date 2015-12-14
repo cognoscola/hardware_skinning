@@ -15,7 +15,6 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     for (int i = 0; i < MAX_BONES; i++) {
         mesh->monkey_bone_offset_matrices[i] = identity_mat4();
     }
-
     assert(meshLoadMeshFile(
             MESH_FILE,
             &mesh->vao,
@@ -25,6 +24,7 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
             &mesh->nodes,
             &mesh->animationDuration
    ));
+
     printf("Bone Count %i\n", mesh->boneCount);
 
 //    meshLoadTexture(mesh);
@@ -32,8 +32,10 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     glUseProgram(mesh->shader);
     meshGetUniforms(mesh);
     glUniformMatrix4fv(mesh->location_projection_mat , 1, GL_FALSE, proj_mat);
-//    mat4 s = rotate_x_deg(identity_mat4(), -90);
-    mesh->modelMatrix = identity_mat4();
+    mat4 rotX = rotate_x_deg(identity_mat4(), -90.0f);
+    mat4 rotY = rotate_y_deg(identity_mat4(), -90.0f);
+    mat4 Trans = translate(identity_mat4(),vec3(0.0f,0.0f,-3.0f));
+    mesh->modelMatrix = Trans *rotY*rotX ;
     glUniformMatrix4fv(mesh->location_model_mat , 1, GL_FALSE, mesh->modelMatrix.m);
 
 /////////visualizing the bones
@@ -45,9 +47,9 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[12];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[13];
         bone_positions[c++] = -mesh->monkey_bone_offset_matrices[i].m[14];
-
         printf("Position[%i]",i);
     }
+
     glGenVertexArrays (1, &mesh->boneVao);
     glBindVertexArray (mesh->boneVao);
     GLuint bones_vbo;
@@ -70,7 +72,6 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
 //////////////////////assign the matrices
 
     //reset bone matrice
-
     char name[64];
     for (int j = 0; j < MAX_BONES; j++) {
         sprintf(name, "bone_matrices[%i]", j);
@@ -82,16 +83,23 @@ void meshInit(Mesh* mesh, GLfloat* proj_mat){
     glUseProgram(mesh->boneShader);
     mesh->location_bone_proj_mat = glGetUniformLocation(mesh->boneShader, "proj");
     mesh->location_bone_view_mat = glGetUniformLocation(mesh->boneShader, "view");
+    mesh->location_bone_model_mat = glGetUniformLocation(mesh->boneShader, "model");
     glUniformMatrix4fv(mesh->location_bone_proj_mat, 1, GL_FALSE, proj_mat);
+    glUniformMatrix4fv(mesh->location_bone_model_mat, 1, GL_FALSE,  mesh->modelMatrix.m);
 
 /////////////////////////////////////////
 }
 
 mat4 convert_assimp_matrix (aiMatrix4x4 m) {
     return mat4 (
-            1.0f, 0.0f, 0.0f, 0.0f,
+ /*           1.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 1.0f, 0.0f,
+            m.a4, m.b4, m.c4, m.d4*/
+
+           m.a1, m.b1, m.c1, m.d1,
+            m.a2, m.b2, m.c2, m.d2,
+            m.a3, m.b3, m.c3, m.d3,
             m.a4, m.b4, m.c4, m.d4
     );
 }
@@ -177,7 +185,14 @@ bool meshLoadMeshFile(
             printf("bone_names[%i]=%s\n", b_i, bone_names[b_i]);
 
             //get the position
+            printf("\n");
+            printf ("[%.2f][%.2f][%.2f][%.2f]\n", bone->mOffsetMatrix.a1, bone->mOffsetMatrix.a2, bone->mOffsetMatrix.a3, bone->mOffsetMatrix.a4);
+            printf ("[%.2f][%.2f][%.2f][%.2f]\n", bone->mOffsetMatrix.b1, bone->mOffsetMatrix.b2, bone->mOffsetMatrix.b3, bone->mOffsetMatrix.b4);
+            printf ("[%.2f][%.2f][%.2f][%.2f]\n", bone->mOffsetMatrix.c1, bone->mOffsetMatrix.c2, bone->mOffsetMatrix.c3, bone->mOffsetMatrix.c4);
+            printf ("[%.2f][%.2f][%.2f][%.2f]\n", bone->mOffsetMatrix.d1, bone->mOffsetMatrix.d2, bone->mOffsetMatrix.d3, bone->mOffsetMatrix.d4);
+
             bone_offset_mats[b_i] = convert_assimp_matrix(bone->mOffsetMatrix);
+//            bone_offset_mats[b_i] = convert_assimp_matrix(bone->mOffsetMatrix);
 
             //get the bone weights
             int num_weights = (int) bone->mNumWeights;
@@ -186,9 +201,8 @@ bool meshLoadMeshFile(
                 int vertex_id = (int) weight.mVertexId;
                 //ignore weight of less than 0.5 factor
                 bone_ids[vertex_id]= b_i;
-                if (weight.mWeight >= 0.5) {
-
-                }
+//                if (weight.mWeight >= 0.5) {
+//                }
             }
         }
 
@@ -372,7 +386,7 @@ void meshRender(Mesh* mesh, Camera* camera, GLfloat planeHeight){
     glUniformMatrix4fv(mesh->location_bone_view_mat, 1, GL_FALSE, camera->viewMatrix.m);
     glBindVertexArray(mesh->boneVao);
     glEnableVertexAttribArray(0);
-    glPointSize(15);
+    glPointSize(1);
     glDrawArrays(GL_POINTS, 0, mesh->boneCount);
     glDisable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_DEPTH_TEST);
