@@ -28,8 +28,8 @@ int main() {
     camera = {}; //camera components
     cameraInit(&camera, &hardware);
 
-    Mesh monkey;
-    meshInit(&monkey, camera.proj_mat);
+    Mesh bird; //bird object
+    meshInit(&bird, camera.proj_mat);
 
     Skybox sky; // sky object
     skyInit(&sky, camera.proj_mat);
@@ -53,10 +53,9 @@ int main() {
         previous_seconds = current_seconds;
 
         anim_time += elapsed_seconds * 0.7;
-        if (anim_time >= monkey.animationDuration) {
-            anim_time = monkey.animationDuration - anim_time;
+        if (anim_time >= bird.animationDuration) {
+            anim_time = bird.animationDuration - anim_time;
         }
-
         if(videoUpdateTimer(&video, &elapsed_seconds)) break;
 
         //RENDER TO THE DEFAULT BUFFER
@@ -65,7 +64,7 @@ int main() {
 
         updateMovement(&camera, &input);
         calculateViewMatrices(&camera);
-        meshRender(&monkey, &camera, 1000.0f);
+        meshRender(&bird, &camera, 1000.0f);
         skyRender(&sky, &camera);
         skyUpdate(&sky);
 
@@ -83,46 +82,46 @@ int main() {
             glfwSetWindowShouldClose(hardware.window, 1);
         }
 
-        bool monkey_moved = false;
+        bool bird_moved = false;
         if (glfwGetKey (hardware.window, 'Z')) {
-            monkey.theta += monkey.rot_speed * elapsed_seconds;
-            monkey.g_local_anims[0] = rotate_z_deg (identity_mat4 (), monkey.theta);
-            monkey.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -monkey.theta);
-            monkey_moved = true;
+            bird.theta += bird.rot_speed * elapsed_seconds;
+            bird.g_local_anims[0] = rotate_z_deg (identity_mat4 (), bird.theta);
+            bird.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -bird.theta);
+            bird_moved = true;
         }
 
         if (glfwGetKey (hardware.window, 'X')) {
-            monkey.theta -= monkey.rot_speed * elapsed_seconds;
-            monkey.g_local_anims[0] = rotate_z_deg (identity_mat4 (), monkey.theta);
-            monkey.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -monkey.theta);
-            monkey_moved = true;
+            bird.theta -= bird.rot_speed * elapsed_seconds;
+            bird.g_local_anims[0] = rotate_z_deg (identity_mat4 (), bird.theta);
+            bird.g_local_anims[1] = rotate_z_deg (identity_mat4 (), -bird.theta);
+            bird_moved = true;
         }
 
         if (glfwGetKey (hardware.window, 'C')) {
-            monkey.y -= 0.5f * elapsed_seconds;
-            monkey.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, monkey.y, 0.0f));
-            monkey_moved = true;
+            bird.y -= 0.5f * elapsed_seconds;
+            bird.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, bird.y, 0.0f));
+            bird_moved = true;
         }
 
         if (glfwGetKey (hardware.window, 'V')) {
-            monkey.y += 0.5f * elapsed_seconds;
-            monkey.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, monkey.y, 0.0f));
-            monkey_moved = true;
+            bird.y += 0.5f * elapsed_seconds;
+            bird.g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, bird.y, 0.0f));
+            bird_moved = true;
         }
         meshSkeletonAnimate(
-                &monkey,
-                monkey.nodes,
+                &bird,
+                bird.nodes,
                 anim_time,
                 identity_mat4 (),
-                monkey.monkey_bone_offset_matrices,
-                monkey.monkey_bone_animation_mats
+                bird.monkey_bone_offset_matrices,
+                bird.monkey_bone_animation_mats
         );
-       glUseProgram (monkey.shader);
+       glUseProgram (bird.shader);
         glUniformMatrix4fv (
-                monkey.bone_matrices_location[0],
-                monkey.boneCount,
+                bird.bone_matrices_location[0],
+                bird.boneCount,
                 GL_FALSE,
-                monkey.monkey_bone_animation_mats[0].m
+                bird.monkey_bone_animation_mats[0].m
         );
 
         if (video.dump_video) { // check if recording mode is enabled
@@ -134,7 +133,7 @@ int main() {
         glfwSwapBuffers(hardware.window);
     }
 
-    meshCleanUp(&monkey);
+    meshCleanUp(&bird);
     skyCleanUp(&sky);
 
     if(video.dump_video) {

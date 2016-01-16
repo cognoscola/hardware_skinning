@@ -586,10 +586,10 @@ SkeletonNode* findNodeInSkeleton(SkeletonNode* root, const char* nodeName){
 }
 
 
-
-void moveEarsForward(Mesh *mesh, float elapsed_seconds){
+/*void animateForwards(Mesh *mesh, float elapsed_seconds){
 
     mesh->theta += mesh->rot_speed * elapsed_seconds;
+// or animate backwards    mesh->theta -= mesh->rot_speed * elapsed_seconds;
 
     glUseProgram(mesh->shader);
     mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[0]) *
@@ -602,18 +602,4 @@ void moveEarsForward(Mesh *mesh, float elapsed_seconds){
     glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
 }
 
-void moveEarsBackward(Mesh *mesh, float elapsed_seconds){
-
-    mesh->theta -= mesh->rot_speed * elapsed_seconds;
-    glUseProgram(mesh->shader);
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[0]) *
-                    rotate_z_deg(identity_mat4(), mesh->theta) *
-                    mesh->monkey_bone_offset_matrices[0];
-    glUniformMatrix4fv(mesh->bone_matrices_location[0], 1, GL_FALSE, mesh->ear_mat.m);
-
-    mesh->ear_mat = inverse(mesh->monkey_bone_offset_matrices[1]) *
-                    rotate_z_deg(identity_mat4(), -mesh->theta) *
-                    mesh->monkey_bone_offset_matrices[1];
-    glUniformMatrix4fv(mesh->bone_matrices_location[1], 1, GL_FALSE, mesh->ear_mat.m);
-
-}
+*/
