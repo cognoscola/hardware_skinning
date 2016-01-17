@@ -1,6 +1,5 @@
 # Skinning
 
-
 This my first attempt at animating a mesh.
 Check out the scene here ( https://www.instagram.com/p/BAXu1dbNgbF/ )
 
@@ -9,6 +8,15 @@ Check out the scene here ( https://www.instagram.com/p/BAXu1dbNgbF/ )
 3. type without quotes: "cmake ."  to generate a makefile
 4. type without quotes: "make" to generate an executable
 5. run executable
+
+Controls
+- a,s,d,w - move camera
+- mouse - orient camera
+- b - take a snapshop (will freeze for a few seconds)
+- spacebar - shatter the screen
+- p - record 10 seconds worth of frames
+
+Controls
 
 Much of the code is based off of Anton's Opengl Tutorial Book (http://antongerdelan.net/opengl/#ebook)
 
