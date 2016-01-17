@@ -9,7 +9,6 @@
  * Bones and animation keyframes and renders it to eh scene
  */
 
-
 #ifndef WATER_REFLECTION_MESH_H
 #define WATER_REFLECTION_MESH_H
 
@@ -18,14 +17,14 @@
 #include <camera/camera.h>
 #include <assimp/scene.h>
 
-#define TERRAIN_TEXTURE "/home/alvaregd/Documents/Games/hardware_skinning/assets/ao_colour.png"
-#define MESH_FILE "/home/alvaregd/Documents/Games/hardware_skinning/assets/seagull.dae"
+#define TERRAIN_TEXTURE "./assets/ao_colour.png"
+#define MESH_FILE "./assets/seagull.dae"
 
-#define MESH_VERTEX "/home/alvaregd/Documents/Games/hardware_skinning/mesh/mesh.vert"
-#define MESH_FRAGMENT "/home/alvaregd/Documents/Games/hardware_skinning/mesh/mesh.frag"
+#define MESH_VERTEX "./mesh/mesh.vert"
+#define MESH_FRAGMENT "./mesh/mesh.frag"
 
-#define BONE_VERTEX "/home/alvaregd/Documents/Games/hardware_skinning/mesh/bone.vert"
-#define BONE_FRAGMENT "/home/alvaregd/Documents/Games/hardware_skinning/mesh/bone.frag"
+#define BONE_VERTEX "./mesh/bone.vert"
+#define BONE_FRAGMENT "./mesh/bone.frag"
 
 /* max bones allowed in a mesh */
 #define MAX_BONES 32

@@ -1,7 +1,14 @@
 # Skinning
 
+
 This my first attempt at animating a mesh.
 Check out the scene here ( https://www.instagram.com/p/BAXu1dbNgbF/ )
+
+1. To install, copy the entire project to any directory
+2. Go to install directory in a terminal
+3. type without quotes: "cmake ."  to generate a makefile
+4. type without quotes: "make" to generate an executable
+5. run executable
 
 Much of the code is based off of Anton's Opengl Tutorial Book (http://antongerdelan.net/opengl/#ebook)
 
